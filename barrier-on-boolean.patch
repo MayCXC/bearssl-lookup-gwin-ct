@@ -1,0 +1,16 @@
+--- a/src/ec/ec_p256_m15.c
++++ b/src/ec/ec_p256_m15.c
+@@ -1925,9 +1925,11 @@
+ 
+ 	memset(xy, 0, sizeof xy);
+ 	for (k = 0; k < 15; k ++) {
+-		uint32_t m;
++		uint32_t m, e;
+ 
+-		m = -EQ(idx, k + 1);
++		e = EQ(idx, k + 1);
++		__asm__("" : "+r"(e));
++		m = -e;
+ 		for (u = 0; u < 20; u ++) {
+ 			xy[u] |= m & Gwin[k][u];
+ 		}

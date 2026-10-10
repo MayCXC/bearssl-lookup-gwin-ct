@@ -1,0 +1,46 @@
+diff --git a/src/inner.h b/src/inner.h
+index 07e1d0a..4bd8d77 100644
+--- a/src/inner.h
++++ b/src/inner.h
+@@ -772,6 +772,32 @@ MUX(uint32_t ctl, uint32_t x, uint32_t y)
+ 	return y ^ (-ctl & (x ^ y));
+ }
+ 
++/*
++ * Barrier: returns its argument, but the compiler cannot see what the
++ * value is. A compiler which still recognises a value as a boolean, or as
++ * a mask derived from one, may reinstate the conditional jump or the
++ * conditional load that the mask was written in order to avoid. This was
++ * observed with clang 19.1.7 at -O2 for Cortex-M0, where the masked table
++ * read in lookup_Gwin() (src/ec/ec_p256_m15.c) was compiled into a branch
++ * over the load, so that only the row selected by the secret index was
++ * read at all.
++ * https://00f.net/2026/10/09/llvm-compiles-branch-free-code-into-branches-on-risc-v/
++ */
++#if defined __GNUC__
++static inline uint32_t
++OPAQUE(uint32_t x)
++{
++	__asm__("" : "+r"(x));
++	return x;
++}
++#else
++static inline uint32_t
++OPAQUE(uint32_t x)
++{
++	return x;
++}
++#endif
++
+ /*
+  * Equality check: returns 1 if x == y, 0 otherwise.
+  */
+@@ -781,7 +807,7 @@ EQ(uint32_t x, uint32_t y)
+ 	uint32_t q;
+ 
+ 	q = x ^ y;
+-	return NOT((q | -q) >> 31);
++	return OPAQUE(NOT((q | -q) >> 31));
+ }
+ 
+ /*

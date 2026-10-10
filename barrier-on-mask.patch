@@ -1,0 +1,10 @@
+--- a/src/ec/ec_p256_m15.c
++++ b/src/ec/ec_p256_m15.c
+@@ -1928,6 +1928,7 @@
+ 		uint32_t m;
+ 
+ 		m = -EQ(idx, k + 1);
++		__asm__("" : "+r"(m));
+ 		for (u = 0; u < 20; u ++) {
+ 			xy[u] |= m & Gwin[k][u];
+ 		}
