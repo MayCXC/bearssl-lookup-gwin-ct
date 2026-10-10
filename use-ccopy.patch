@@ -1,0 +1,16 @@
+--- a/src/ec/ec_p256_m15.c
++++ b/src/ec/ec_p256_m15.c
+@@ -1925,12 +1925,7 @@
+ 
+ 	memset(xy, 0, sizeof xy);
+ 	for (k = 0; k < 15; k ++) {
+-		uint32_t m;
+-
+-		m = -EQ(idx, k + 1);
+-		for (u = 0; u < 20; u ++) {
+-			xy[u] |= m & Gwin[k][u];
+-		}
++		CCOPY(EQ(idx, k + 1), xy, Gwin[k], sizeof xy);
+ 	}
+ 	for (u = 0; u < 10; u ++) {
+ 		T->x[(u << 1) + 0] = xy[u] & 0xFFFF;

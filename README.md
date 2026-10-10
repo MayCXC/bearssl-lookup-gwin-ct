@@ -109,6 +109,35 @@ every other caller of `EQ`, which is most of the constant-time code, and the
 narrower alternative is a barrier at the lookup alone, which
 `barrier-on-boolean.patch` shows.
 
+## The library's own primitive is not sufficient
+
+`br_ccopy` (`src/inner.h`, implemented in `src/codec/ccopy.c`) is BearSSL's
+constant-time conditional copy, built on `MUX`, and `lookup_Gwin`'s job is
+exactly what it does. Written with it the masking loop becomes one line:
+
+```c
+for (k = 0; k < 15; k ++) {
+	CCOPY(EQ(idx, k + 1), xy, Gwin[k], sizeof xy);
+}
+```
+
+Measured, that compiles to 302 lines with **zero** conditional branches, because
+`br_ccopy` is an out-of-line call and the control word never becomes visible as
+a boolean inside the lookup. It needs no barrier and no compiler-specific
+syntax.
+
+It does not hold, though. Compiled with `br_ccopy`'s body visible in the same
+translation unit, which is what link-time optimisation achieves across units,
+clang inlines it and the rewrite returns at 22 conditional branches, worse than
+the 12 of stock. So the primitive protects the lookup only for as long as it is
+not inlined, and that is not a property the source can state.
+
+The barrier in `EQ` covers this path as well. With `opaque-eq.patch` applied and
+`br_ccopy` inlined, the same translation unit compiles to 301 lines with two
+conditional branches, the loop back-edges. Every control word in the library
+originates in `EQ`, `NEQ` or a sibling, so a barrier there is opaque wherever
+that word flows afterwards, inlining included.
+
 ## Scope
 
 - The same shape appears on `thumbv6m` Cortex-M0 and M0+, `thumbv8m.base`
